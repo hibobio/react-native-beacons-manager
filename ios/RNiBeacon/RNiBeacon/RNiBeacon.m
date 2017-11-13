@@ -14,6 +14,8 @@
 
 #import "RNiBeacon.h"
 
+NSString *kLastRegionKey = @"lastBeaconRegion";
+
 @interface RNiBeacon() <CLLocationManagerDelegate>
 
 @property (strong, nonatomic) CLLocationManager *locationManager;
@@ -25,6 +27,8 @@
 
 RCT_EXPORT_MODULE()
 
+@synthesize bridge = _bridge;
+
 #pragma mark Initialization
 
 - (instancetype)init
@@ -35,20 +39,24 @@ RCT_EXPORT_MODULE()
     self.locationManager.delegate = self;
     self.locationManager.pausesLocationUpdatesAutomatically = NO;
     self.dropEmptyRanges = NO;
-  }
+}
 
   return self;
 }
 
-- (NSArray<NSString *> *)supportedEvents
+-(void)wakeUpWithLastRegion
 {
-    return @[
-             @"authorizationStatusDidChange",
-             @"beaconsDidRange",
-             @"regionDidEnter",
-             @"regionDidExit",
-             @"didDetermineState"
-             ];
+    NSDictionary *lastBeaconRegion = [[NSUserDefaults standardUserDefaults] dictionaryForKey:kLastRegionKey];
+    
+    if (lastBeaconRegion) {
+        self.locationManager.allowsBackgroundLocationUpdates = YES;
+        if ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
+            [self.locationManager requestAlwaysAuthorization];
+        }
+        
+        [self.locationManager startMonitoringForRegion:[self convertDictToBeaconRegion:lastBeaconRegion]];
+        [self startUpdatingLocation];
+    }
 }
 
 #pragma mark
@@ -140,6 +148,11 @@ RCT_EXPORT_MODULE()
   }
 }
 
+RCT_EXPORT_METHOD(allowsBackgroundLocationUpdates:(BOOL)allow)
+{
+    self.locationManager.allowsBackgroundLocationUpdates = allow;
+}
+
 RCT_EXPORT_METHOD(requestAlwaysAuthorization)
 {
   if ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
@@ -154,11 +167,6 @@ RCT_EXPORT_METHOD(requestWhenInUseAuthorization)
   }
 }
 
-RCT_EXPORT_METHOD(allowsBackgroundLocationUpdates:(BOOL)allow)
-{
-  self.locationManager.allowsBackgroundLocationUpdates = allow;
-}
-
 RCT_EXPORT_METHOD(getAuthorizationStatus:(RCTResponseSenderBlock)callback)
 {
   callback(@[[self nameForAuthorizationStatus:[CLLocationManager authorizationStatus]]]);
@@ -166,6 +174,9 @@ RCT_EXPORT_METHOD(getAuthorizationStatus:(RCTResponseSenderBlock)callback)
 
 RCT_EXPORT_METHOD(startMonitoringForRegion:(NSDictionary *) dict)
 {
+    if (dict) {
+        [[NSUserDefaults standardUserDefaults] setObject:dict forKey:kLastRegionKey];
+    }
   [self.locationManager startMonitoringForRegion:[self convertDictToBeaconRegion:dict]];
 }
 
@@ -221,8 +232,8 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
 
 -(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
 {
-    NSString *statusName = [self nameForAuthorizationStatus:status];
-    [self sendEventWithName:@"authorizationStatusDidChange" body:statusName];
+  NSString *statusName = [self nameForAuthorizationStatus:status];
+  [self.bridge.eventDispatcher sendDeviceEventWithName:@"authorizationStatusDidChange" body:statusName];
 }
 
 -(void)locationManager:(CLLocationManager *)manager rangingBeaconsDidFailForRegion:(CLBeaconRegion *)region withError:(NSError *)error
@@ -236,25 +247,6 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
 
 -(void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
   NSLog(@"Location manager failed: %@", error);
-}
-
--(NSString *)stringForState:(CLRegionState)state {
-  switch (state) {
-    case CLRegionStateInside:   return @"inside";
-    case CLRegionStateOutside:  return @"outside";
-    case CLRegionStateUnknown:  return @"unknown";
-    default:                    return @"unknown";
-  }
-}
-
-- (void) locationManager:(CLLocationManager *)manager didDetermineState:(CLRegionState)state forRegion:(CLRegion *)region
-{
-    NSDictionary *event = @{
-                          @"state":   [self stringForState:state],
-                          @"identifier":  region.identifier,
-                          };
-
-    [self sendEventWithName:@"didDetermineState" body:event];
 }
 
 -(void) locationManager:(CLLocationManager *)manager didRangeBeacons:
@@ -285,7 +277,7 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                           @"beacons": beaconArray
                           };
 
-    [self sendEventWithName:@"beaconsDidRange" body:event];
+  [self.bridge.eventDispatcher sendDeviceEventWithName:@"beaconsDidRange" body:event];
 }
 
 -(void)locationManager:(CLLocationManager *)manager
@@ -295,7 +287,7 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                           @"uuid": [region.proximityUUID UUIDString],
                           };
 
-    [self sendEventWithName:@"regionDidEnter" body:event];
+  [self.bridge.eventDispatcher sendDeviceEventWithName:@"regionDidEnter" body:event];
 }
 
 -(void)locationManager:(CLLocationManager *)manager
@@ -305,12 +297,8 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                           @"uuid": [region.proximityUUID UUIDString],
                           };
 
-    [self sendEventWithName:@"regionDidExit" body:event];
+  [self.bridge.eventDispatcher sendDeviceEventWithName:@"regionDidExit" body:event];
 }
 
-+ (BOOL)requiresMainQueueSetup
-{
-    return YES;
-}
 
 @end

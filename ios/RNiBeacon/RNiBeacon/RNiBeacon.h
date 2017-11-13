@@ -7,10 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
-
 #import <React/RCTBridgeModule.h>
-#import <React/RCTEventEmitter.h>
 
-@interface RNiBeacon : RCTEventEmitter <RCTBridgeModule>
+@interface RNiBeacon : NSObject <RCTBridgeModule>
+
+-(void)wakeUpWithLastRegion;
 
 @end

@@ -2,10 +2,6 @@
 [![npm](https://img.shields.io/npm/v/npm.svg)](https://github.com/MacKentoch/react-native-beacons-manager)
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/react-native-beacons-manager/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
-<a target='_blank' rel='nofollow' href='https://app.codesponsor.io/link/Mp96tCWH2KdajZuBzqB6jwj8/MacKentoch/react-native-beacons-manager'>
-  <img alt='Sponsor' width='888' height='68' src='https://app.codesponsor.io/embed/Mp96tCWH2KdajZuBzqB6jwj8/MacKentoch/react-native-beacons-manager.svg' />
-</a>
-
 # react-native-beacons-manager
 
 ![logo](./images/RN-iBeacon.png)
@@ -57,7 +53,6 @@ If you plan to:
   - in your `info.plist`, add `Privacy - Location Always Usage Description` key defined (*empty value or not. It is better to define a value to a custom / more user-friendly message*).
   ![ios: request when in use authorization](./images/plistRequireAlwaysUseAutorization.png)
 
--  If your `Info.plist` contains a `NSBluetoothPeripheralUsageDescription` key, you have to specify an associated text to avoid being rejected.
 
 - **use background mode** check [this documentation](./BACKGROUND_MODES.md)
 
@@ -198,7 +193,7 @@ DeviceEventEmitter.addListener('beaconsDidRange', (data) => {
 **Improvements or new feature:**
 
 - **iOS**
-  - [ ] add support to Eddystone (we will have to wait for Apple: [as an illustation](https://www.beaconzone.co.uk/blog/will-apple-ever-support-eddystone-url-detection-in-ios/))
+  - [ ] add support to Eddystone
 - **android**
   - [ ] add support to Eddystone
 
